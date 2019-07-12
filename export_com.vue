@@ -22,12 +22,11 @@
 <script>
 import FileSaver from 'file-saver'
 import XLSX from 'xlsx'
-import {export_json_to_excel,export_table_to_excel,export_table_to_excel_custom} from '@/assets/js/Export2Excel'
+import {export_json_to_excel,export_json_to_excel_custom,export_table_to_excel,export_table_to_excel_custom} from '@/assets/js/Export2Excel'
 export default {
   methods: {
-    //生成表格
+    /* 导出样式表格网上方法 */
     exportExcel () {
-        /* 导出样式表格网上方法 */
         const tHeader = ['船名', '船长', '货种', '载重吨', '净吨', '锚地', '预抵时间', '下锚时间', '预靠泊位'] //表头
         const title = ['锚地船舶', '', '', '', '', '', '', '', '']  //标题
         //表头对应字段
@@ -43,7 +42,7 @@ export default {
           })
         })
         const merges = ['A1:I1'] //合并单元格
-        export_json_to_excel({
+        export_json_to_excel_custom({
           title: title,
           header: tHeader,
           data,
@@ -53,6 +52,26 @@ export default {
           bookType: 'xlsx'
         })
 	},
+    formatJson(filterVal, jsonData) {
+      return jsonData.map(v => filterVal.map(j => v[j]))
+    }
+    
+	/* 导出无样式表格网上方法 */
+    exportToExcel() {
+      if(this.tableData.length){
+        // console.log(this.tableData)
+        require.ensure([], () => {
+            const {
+                export_json_to_excel
+            } = require('@/assets/js/Export2Excel');
+            const tHeader = ['报警ID','级别','IP地址','设备类型','设备描述','消息','状态','发生时刻','最近发生','恢复时刻','处理时刻','报警次数','处理者','是否处理','处理备注'];
+            const filterVal = ['NewAlarmId','AlarmLevel','IPAddress','TrsTypeName','SysName','Message','AlarmStatusName','OccTime','OccLastTime','RecoverTime','TimeHandel','AlarmTimes','LoginName','IsHandel','HndMessage'];
+            const list = this.tableData;
+            const data = this.formatJson(filterVal, list);
+            export_json_to_excel(tHeader, data, '历史告警'+this.selectDateRange[0].format("yyyy-MM-dd").toString()+'至'+this.selectDateRange[1].format("yyyy-MM-dd").toString());
+        })
+      }
+    },
     formatJson(filterVal, jsonData) {
       return jsonData.map(v => filterVal.map(j => v[j]))
     }
