@@ -277,7 +277,27 @@ export function export_table_to_excel(id) {
   }), "test.xlsx")
 }
 
-export function export_json_to_excel({
+export function export_json_to_excel(th, jsonData, defaultTitle) {
+
+  /* original data */
+
+  var data = jsonData;
+  data.unshift(th);
+  var ws_name = "SheetJS";
+
+  var wb = new Workbook(), ws = sheet_from_array_of_arrays(data);
+
+
+  /* add worksheet to workbook */
+  wb.SheetNames.push(ws_name);
+  wb.Sheets[ws_name] = ws;
+
+  var wbout = XLSX.write(wb, {bookType: 'xlsx', bookSST: false, type: 'binary'});
+  var title = defaultTitle || '列表'
+  saveAs(new Blob([s2ab(wbout)], {type: "application/octet-stream"}), title + ".xlsx")
+}
+
+export function export_json_to_excel_custom({
    title,
    multiHeader = [],
    header,
