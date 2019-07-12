@@ -1,8 +1,7 @@
 /* eslint-disable */
 require('script-loader!file-saver');
-// require('script-loader!src/vendor/Blob');
-require('script-loader!../../assets/js/Blob');
-require('script-loader!xlsx/dist/xlsx.core.min');
+// require('script-loader!../../assets/js/Blob'); 测试不记载,也没什么问题
+// require('script-loader!xlsx/dist/xlsx.core.min');
 /* eslint-disable */
 import XLSX from 'xlsx-style'
 
