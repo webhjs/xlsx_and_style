@@ -101,6 +101,39 @@ export default {
         return wbout
     }
     
+    	/* 导出第一行样式表格方法 */
+    //生成表格
+    exportToExcel () {
+	    if(!this.tableData.Values || this.tableData.Values<=0) return
+	    require.ensure([], () => {
+		const {
+		    export_json_top_custom
+		} = require('@/assets/js/Export2Excel');
+		/* 导出样式表格根据网上方法修改 */
+		let name = this.selectTrsName+this.troubleTypeName+this.selectDateRange[0].format("yyyy-MM-dd").toString()+'至'+this.selectDateRange[1].format("yyyy-MM-dd").toString()+'事件报表'
+		const tHeader = this.tableData.Columns //表头
+		const title = [name,'','','','','','','','','','',''];  //标题
+		const data = this.tableData.Values
+		data.map(item => {
+		    // console.log(item)
+		    item.map((i, index) => {
+			if (!i) {
+			    item[index] = ''
+			}
+		    })
+		})
+		const merges = ['A1:L1'] //合并单元格
+		export_json_top_custom({
+		    title: title,
+		    header: tHeader,
+		    data,
+		    merges,
+		    filename: name,
+		    autoWidth: true,//是否自动计算过导出表格宽度
+		    bookType: 'xlsx'
+		})
+	    })
+    }
     
     //导入表格数据函数
     importfxx(obj) {
