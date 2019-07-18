@@ -16,6 +16,8 @@
       .......
     </table>
     <el-button type="primary" @click="exportExcel">导出</el-button>
+    <!-- .csv,.xlsx 调用windows接口用于快速筛选格式文件 -->
+    <input id="upload" type="file" @change="importfxx(this)" accept=".csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"/>
   </div>
 </template>
 
@@ -97,7 +99,73 @@ export default {
             FileSaver.saveAs(new Blob([wbout], { type: 'application/octet-stream' }), 'sheetjs.xlsx')
         } catch (e) { if (typeof console !== 'undefined') console.log(e, wbout) }
         return wbout
-	}
+    }
+    
+    
+    //导入表格数据函数
+    importfxx(obj) {
+      let _this = this;
+      let inputDOM = this.$refs.inputer;
+      // 通过DOM取文件数据
+      this.file = event.currentTarget.files[0];
+  　　var rABS = false; //是否将文件读取为二进制字符串
+  　　var f = this.file;
+  　　var reader = new FileReader();
+      FileReader.prototype.readAsBinaryString = function(f) {
+          var binary = "";
+          var rABS = false; //是否将文件读取为二进制字符串
+          var pt = this;
+          var wb; //读取完成的数据
+          var outdata;
+          var reader = new FileReader();
+          reader.onload = function(e) {
+              var bytes = new Uint8Array(reader.result);
+              var length = bytes.byteLength;
+              for(var i = 0; i < length; i++) {
+                  binary += String.fromCharCode(bytes[i]);
+              }
+              var XLSX = require('xlsx');
+              if(rABS) {
+                  wb = XLSX.read(btoa(fixdata(binary)), { //手动转化
+                      type: 'base64'
+                  });
+              } else {
+                  wb = XLSX.read(binary, {
+                      type: 'binary'
+                  });
+              }
+              outdata = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);  //得到以第一行为key的对象数组
+              console.log(outdata)
+              let importList = _this.dateTransition(outdata);
+          }
+          reader.readAsArrayBuffer(f);
+      }
+      if(rABS) {
+          reader.readAsArrayBuffer(f);
+      } else {
+          reader.readAsBinaryString(f);
+      }
+    },
+    // 将对应的中文key转化为自己想要的英文key
+    dateTransition(outdata) {
+    　　let list = [];
+    　　var obj = {};
+    　　for(var i = 0; i < outdata.length; i++) {
+    　　　　obj = {};
+    　　　　for(var key in outdata[i]) {
+    		//if(key == '工号') {
+    		// 　　obj['jobNumber'] = outdata[i][key];
+   		//} else if(key == '姓名') {
+    		// 　　obj['name'] = outdata[i][key];
+    		//} else if(key == '部门') {
+    		// 　　obj['department'] = outdata[i][key];
+    		//}
+    　　　　}
+    　　　　list.push(obj);
+    　　}
+    　　return list;
+    }
+    
   }
 }
 </script>
