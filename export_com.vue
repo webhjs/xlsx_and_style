@@ -24,7 +24,7 @@
 <script>
 import FileSaver from 'file-saver'
 import XLSX from 'xlsx'
-import {export_json_to_excel,export_json_to_excel_custom,export_table_to_excel,export_table_to_excel_custom} from '@/assets/js/Export2Excel'
+import {export_json_to_excel,export_json_to_excel_custom,export_table_to_excel,export_table_to_excel_custom,export_json_common_custom} from '@/assets/js/Export2Excel'
 export default {
   methods: {
     /* 导出样式表格网上方法 */
@@ -197,6 +197,88 @@ export default {
     　　　　list.push(obj);
     　　}
     　　return list;
+    }
+    
+    
+    /* 通用excel函数方法 */
+    exportCommonExcel() {
+      const tHeader = [
+        "船名",
+        "船长",
+        "货种",
+        "载重吨",
+        "净吨",
+        "锚地",
+        "预抵时间",
+        "下锚时间",
+        "预靠泊位"
+      ]; //表头
+      const title = ["锚地船舶", "", "", "", "", "", "", "", ""]; //标题
+      //表头对应字段
+      const filterVal = ["orgName", "dbNum"];
+      const list = this.tableData;
+      const data = this.formatJson(filterVal, list);
+      data.map(item => {
+        // console.log(item)
+        item.map((i, index) => {
+          if (!i) {
+            item[index] = "";
+          }
+        });
+      });
+      const merges = ["A1:I1", "A2:B2"]; //合并单元格
+      export_json_common_custom({
+        title: title,
+        header: tHeader,
+        data,
+        merges,
+        filename: "锚地船舶",
+        autoWidth: true,
+        bookType: "xlsx",
+        cellStyle: [
+          {
+            range: ["A1"],
+            style: {
+              font: {
+                name: "宋体",
+                sz: 18,
+                //  color: {rgb: "ff0000"},
+                bold: true,
+                italic: false,
+                underline: false
+              },
+              alignment: {
+                horizontal: "center",
+                vertical: "center"
+              },
+              fill: {
+                fgColor: { rgb: "FCFF40" }
+              }
+            }
+          },
+          {
+            range: ["A2:I2", "A3:B3"],
+            style: {
+              font: {
+                // name: '宋体',
+                sz: 14,
+                // color: {rgb: "ff0000"},
+                bold: true,
+                italic: false,
+                underline: false
+              },
+              fill: {
+                fgColor: { rgb: "cccccc" }
+              },
+              alignment: {
+                horizontal: "center",
+                vertical: "center",
+                // wrapText: "false" 文字是否换行
+              }
+            }
+          }
+        ]
+      });
     }
     
   }
