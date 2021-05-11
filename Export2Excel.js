@@ -5,6 +5,8 @@ require('script-loader!file-saver');
 /* eslint-disable */
 import XLSX from 'xlsx-style'
 
+// 配置参数文档  https://github.com/pikaz-18/pikaz-excel-js
+
 function generateArray(table) {
   var out = [];
   var rows = table.querySelectorAll('tr');
@@ -117,6 +119,36 @@ function s2ab(s) {
   return buf;
 }
 
+function converter(value) {
+  // A-Z计数器转换器
+  const type = typeof value;
+  let finaly = null;
+  switch (type) {
+    case "number":
+      finaly = "";
+      let divisor = Math.floor(value / 26),
+        remainder = value % 26 ? [value % 26] : value <= 26 ? [value] : [];
+      while (divisor > 26) {
+        divisor = Math.floor(divisor / 26);
+        remainder.unshift(divisor % 26);
+      }
+      value > 26 && remainder.unshift(divisor);
+      for (let val of remainder) {
+        finaly += String.fromCharCode(val + 64);
+      }
+      break;
+    case "string":
+      finaly = 0;
+      const length = value.length;
+      for (let len = 0; len < length; len++) {
+        finaly +=
+          (value.charAt(len).charCodeAt() - 64) *
+          Math.pow(26, length - len - 1);
+      }
+      break;
+  }
+  return finaly;
+}
 
 
 export function export_table_title_custom(data,name) {  //id选择器第一行灰色
@@ -898,5 +930,160 @@ export function export_json_top_custom({    //json数据设置第一行为灰色
  saveAs(new Blob([s2ab(wbout)], {
    type: "application/octet-stream"
  }), `${filename}.${bookType}`);
+}
+
+
+// 通用配置函数
+export function export_json_common_custom({
+  title,
+  multiHeader = [],
+  header,
+  data,
+  filename,
+  cellStyle,
+  merges = [],
+  autoWidth = true,
+  bookType = "xlsx"
+} = {}) {
+  /* original data */
+  filename = filename || "excel-list";
+  data = [...data];
+  data.unshift(header);
+  data.unshift(title);
+  for (let i = multiHeader.length - 1; i > -1; i--) {
+    data.unshift(multiHeader[i]);
+  }
+
+  var ws_name = "SheetJS";
+  var wb = new Workbook(),
+    ws = sheet_from_array_of_arrays(data);
+
+  if (merges.length > 0) {
+    if (!ws["!merges"]) ws["!merges"] = [];
+    merges.forEach(item => {
+      ws["!merges"].push(XLSX.utils.decode_range(item));
+    });
+  }
+
+  if (autoWidth) {
+    /*设置worksheet每列的最大宽度*/
+    data.shift(title);
+    const colWidth = data.map(row =>
+      row.map(val => {
+        /*先判断是否为null/undefined*/
+        if (val == null) {
+          return {
+            wch: 10
+          };
+        } else if (val.toString().charCodeAt(0) > 255) {
+          /*再判断是否为中文*/
+          return {
+            wch: val.toString().length * 2 + 5
+          };
+        } else {
+          return {
+            wch: val.toString().length + 5
+          };
+        }
+      })
+    );
+    /*以第一行为初始值*/
+    let result = colWidth[0];
+    for (let i = 1; i < colWidth.length; i++) {
+      for (let j = 0; j < colWidth[i].length; j++) {
+        if (result[j]["wch"] < colWidth[i][j]["wch"]) {
+          result[j]["wch"] = colWidth[i][j]["wch"];
+        }
+      }
+    }
+    ws["!cols"] = result;
+  }
+
+  /* add worksheet to workbook */
+  wb.SheetNames.push(ws_name);
+  wb.Sheets[ws_name] = ws;
+  var dataInfo = wb.Sheets[wb.SheetNames[0]];
+
+  const borderAll = {
+    //单元格外侧框线
+    top: {
+      style: "thin"
+    },
+    bottom: {
+      style: "thin"
+    },
+    left: {
+      style: "thin"
+    },
+    right: {
+      style: "thin"
+    }
+  };
+  //给所以单元格加上边框
+  for (var i in dataInfo) {
+    if (i == "!ref" || i == "!merges" || i == "!cols" || i == "A1") {
+    } else {
+      dataInfo[i + ""].s = {
+        border: borderAll,
+        alignment: {
+          horizontal: "center",
+          vertical: "center"
+        }
+      };
+    }
+  }
+
+  merges.map(mer => {
+    const a = mer.split(":"),
+      col = [];
+    let row = null;
+    for (let i of a) {
+      col.push(i.match(/^[A-Z]+/gi)[0]);
+      row = i.match(/\d+$/gi)[0];
+    }
+    const before = col[0].charCodeAt() - 64;
+    const length = col[1].charCodeAt() - col[0].charCodeAt();
+    for (let len = 0; len <= length; len++) {
+      dataInfo[converter(before + len) + row].s = {};
+    }
+  });
+
+  cellStyle.map(cell => {
+    cell.range.map(mer => {
+      const a = mer.split(":"),
+        col = [];
+      let row = null;
+      for (let i of a) {
+        col.push(i.match(/^[A-Z]+/gi)[0]);
+        row = i.match(/\d+$/gi)[0];
+      }
+      console.log(col)
+      switch(col.length) {
+        case 1:
+          dataInfo[mer].s = cell.style;
+          break;
+        case 2:
+          const before = col[0].charCodeAt() - 64;
+          const length = col[1].charCodeAt() - col[0].charCodeAt();
+          for (let len = 0; len <= length; len++) {
+            dataInfo[converter(before + len) + row].s = cell.style;
+          }
+          break;
+      }
+      
+    });
+  })
+
+  var wbout = XLSX.write(wb, {
+    bookType: bookType,
+    bookSST: false,
+    type: "binary"
+  });
+  saveAs(
+    new Blob([s2ab(wbout)], {
+      type: "application/octet-stream"
+    }),
+    `${filename}.${bookType}`
+  );
 }
 
